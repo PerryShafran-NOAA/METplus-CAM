@@ -1,0 +1,34 @@
+<load_spec>
+  <connection>
+    <host>metviewer-dev-cluster.cluster-czbts4gd2wm2.us-east-1.rds.amazonaws.com:3306</host>
+    <database>mv_emc_g2o_met</database>
+    <user>rds_user</user>
+    <password>rds_pwd</password>
+    <management_system>aurora</management_system>
+  </connection>
+
+  <met_version>V6.1</met_version>
+
+  <verbose>true</verbose>
+  <insert_size>1</insert_size>
+  <mode_header_db_check>true</mode_header_db_check>
+  <stat_header_db_check>true</stat_header_db_check>
+  <drop_indexes>false</drop_indexes>
+  <apply_indexes>true</apply_indexes>
+  <load_stat>true</load_stat>
+  <load_mode>true</load_mode>
+  <load_mpr>true</load_mpr>
+  <load_orank>true</load_orank>
+  <force_dup_file>true</force_dup_file>
+  <group>pshafran</group>
+  <description>Test of loading real set of data</description>
+ <folder_tmpl>/base_dir/{model}</folder_tmpl>
+  <load_val>
+    <field name="model">
+      <val>${model}</val>
+    </field>
+  </load_val>
+
+
+  <load_xml>true</load_xml>
+</load_spec>

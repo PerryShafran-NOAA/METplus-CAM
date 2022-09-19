@@ -1,0 +1,211 @@
+#PBS -N metplus_aqmax
+#PBS -j oe
+#PBS -o /lfs/h2/emc/ptmp/perry.shafran/output/metplus_aqmax.out
+#PBS -e /lfs/h2/emc/ptmp/perry.shafran/output/metplus_aqmax.out
+#PBS -q "dev"
+#PBS -A VERF-DEV
+#PBS -S /bin/bash
+#PBS -l select=1:ncpus=1:mem=3000MB
+#PBS -l walltime=02:00:00
+#PBS -l debug=true
+
+set -x
+
+export cycle=t00z
+export MET_PLUS_TMP=/lfs/h2/emc/ptmp/perry.shafran/metplus_aqmax
+
+rm -f -r $MET_PLUS_TMP
+mkdir -p $MET_PLUS_TMP
+cd $MET_PLUS_TMP
+
+module purge
+export HPC_OPT=/apps/ops/para/libs
+module use /apps/ops/para/libs/modulefiles/compiler/intel/19.1.3.304/
+module load intel
+module load gsl
+module load python/3.8.6
+module load netcdf/4.7.4
+module load met/10.0.1
+module load metplus/4.0.0
+
+module load prod_util/2.0.13
+module load prod_envir/2.0.6
+module load wgrib2/2.0.8
+
+sh setpdy.sh
+. $MET_PLUS_TMP/PDY
+
+export DATE=$PDYm3
+export DATEP1=$PDY
+export MET_PLUS_CONF=/lfs/h2/emc/vpppg/save/perry.shafran/METplus-4.0.0/parm/use_cases/perry
+export MET_PLUS_OUT=/lfs/h2/emc/vpppg/noscrub/perry.shafran/metplus_aq
+export MET_PLUS_STD=/lfs/h2/emc/ptmp/perry.shafran/metplus_aqmax
+
+cat << EOF > shared.conf_aqmax
+[config]
+
+# Time method by which to perform validation, either by init time or by valid
+# time. Indicate by either BY_VALID or BY_INIT
+#TIME_METHOD = BY_VALID
+LOOP_BY = VALID
+
+# For processing by init time or valid time, indicate the start and end hours
+# in HH format                                                             
+VALID_TIME_FMT = %Y%m%d
+
+VALID_BEG = ${DATE}
+VALID_END = ${DATE}
+
+# Indicate the begin and end date, and interval (in hours)                                                        
+#BEG_TIME = 20190502
+#END_TIME = 20190502
+#INTERVAL_TIME = 1
+VALID_INCREMENT = 3600
+
+# start and end dates are created by combining the date with
+# start and end hours (format can be hh, hhmm, or hhmmss.                                                         
+#START_DATE = {BEG_TIME}{START_HOUR}
+#END_DATE = {END_TIME}{END_HOUR}
+
+# The obs window dictionary
+OBS_WINDOW_BEGIN = -43200
+OBS_WINDOW_END = 43200
+
+OBS_PB2NC_FILE_WINDOW_BEGIN = 0
+OBS_PB2NC_FILE_WINDOW_END = 86400
+
+EOF
+
+for hour in 06 12
+do
+
+for model in aqmax1 
+do
+
+mkdir -p /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm3}
+mkdir -p /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm4}
+mkdir -p /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm5}
+
+if [ $hour -eq 06 ]
+then
+wgrib2 -d 1 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm3}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "-1-22 hour ave fcst" -grib out1.grb2
+wgrib2 -d 2 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm3}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "23-46 hour ave fcst" -grib out2.grb2
+wgrib2 -d 3 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm3}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "47-70 hour ave fcst" -grib out3.grb2
+cat out1.grb2 out2.grb2 out3.grb2 > /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm3}/aqm.t${hour}z.max_1hr_o3.148.grib2
+wgrib2 -d 1 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm4}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "-1-22 hour ave fcst" -grib out1.grb2
+wgrib2 -d 2 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm4}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "23-46 hour ave fcst" -grib out2.grb2
+wgrib2 -d 3 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm4}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "47-70 hour ave fcst" -grib out3.grb2
+cat out1.grb2 out2.grb2 out3.grb2 > /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm4}/aqm.t${hour}z.max_1hr_o3.148.grib2
+wgrib2 -d 1 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm5}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "-1-22 hour ave fcst" -grib out1.grb2
+wgrib2 -d 2 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm5}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "23-46 hour ave fcst" -grib out2.grb2
+wgrib2 -d 3 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm5}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "47-70 hour ave fcst" -grib out3.grb2
+cat out1.grb2 out2.grb2 out3.grb2 > /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm5}/aqm.t${hour}z.max_1hr_o3.148.grib2
+fi
+
+if [ $hour -eq 12 ]
+then
+wgrib2 -d 1 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm3}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "-7-16 hour ave fcst" -grib out1.grb2
+wgrib2 -d 2 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm3}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "17-40 hour ave fcst" -grib out2.grb2
+wgrib2 -d 3 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm3}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "41-64 hour ave fcst" -grib out3.grb2
+cat out1.grb2 out2.grb2 out3.grb2> /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm3}/aqm.t${hour}z.max_1hr_o3.148.grib2
+wgrib2 -d 1 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm4}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "-7-16 hour ave fcst" -grib out1.grb2
+wgrib2 -d 2 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm4}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "17-40 hour ave fcst" -grib out2.grb2
+wgrib2 -d 3 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm4}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "41-64 hour ave fcst" -grib out3.grb2
+cat out1.grb2 out2.grb2 out3.grb2 > /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm4}/aqm.t${hour}z.max_1hr_o3.148.grib2
+wgrib2 -d 1 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm5}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "-7-16 hour ave fcst" -grib out1.grb2
+wgrib2 -d 2 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm5}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "17-40 hour ave fcst" -grib out2.grb2
+wgrib2 -d 3 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm5}/aqm.t${hour}z.max_1hr_o3.148.grib2 -set_ftime "41-64 hour ave fcst" -grib out3.grb2
+cat out1.grb2 out2.grb2 out3.grb2 > /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm5}/aqm.t${hour}z.max_1hr_o3.148.grib2
+
+fi
+
+
+cat << EOF > fcst_input_temp_${model}.conf
+[filename_templates]
+FCST_POINT_STAT_INPUT_TEMPLATE = cs.{init?fmt=%Y%m%d}/aqm.t${hour}z.max_1hr_o3.148.grib2
+EOF
+
+run_metplus.py -c ${MET_PLUS_CONF}/pb2nc_${model}.conf -c ${MET_PLUS_CONF}/point_stat_${model}.conf -c ${MET_PLUS_TMP}/shared.conf_aqmax -c ${MET_PLUS_CONF}/system_aq.conf -c ${MET_PLUS_TMP}/fcst_input_temp_${model}.conf
+
+
+done
+
+for model in aqmax8
+do
+
+#mkdir -p /gpfs/dell2/ptmp/Perry.Shafran/com/aqm/prod/aqm.${PDYm3}
+#mkdir -p /gpfs/dell2/ptmp/Perry.Shafran/com/aqm/prod/aqm.${PDYm4}
+
+
+if [ $hour -eq 06 ]
+then
+wgrib2 -d 1 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm3}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "6-29 hour ave fcst"  -grib out1.grb2
+wgrib2 -d 2 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm3}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "30-53 hour ave fcst" -grib out2.grb2
+wgrib2 -d 3 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm3}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "54-77 hour ave fcst" -grib out3.grb2
+cat out1.grb2 out2.grb2 out3.grb2 > /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm3}/aqm.t${hour}z.max_8hr_o3.148.grib2
+wgrib2 -d 1 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm4}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "6-29 hour ave fcst" -grib out1.grb2
+wgrib2 -d 2 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm4}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "30-53 hour ave fcst" -grib out2.grb2
+wgrib2 -d 3 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm4}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "54-77 hour ave fcst" -grib out3.grb2
+cat out1.grb2 out2.grb2 out3.grb2 > /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm4}/aqm.t${hour}z.max_8hr_o3.148.grib2
+wgrib2 -d 1 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm5}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "6-29 hour ave fcst" -grib out1.grb2
+wgrib2 -d 2 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm5}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "30-53 hour ave fcst" -grib out2.grb2
+wgrib2 -d 3 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm5}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "54-77 hour ave fcst" -grib out3.grb2
+cat out1.grb2 out2.grb2 out3.grb2 > /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm5}/aqm.t${hour}z.max_8hr_o3.148.grib2
+fi
+
+if [ $hour -eq 12 ]
+then
+wgrib2 -d 1 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm3}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "0-23 hour ave fcst" -grib out1.grb2
+wgrib2 -d 2 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm3}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "24-47 hour ave fcst" -grib out2.grb2
+wgrib2 -d 3 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm3}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "48-71 hour ave fcst" -grib out3.grb2
+cat out1.grb2 out2.grb2 out3.grb2 > /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm3}/aqm.t${hour}z.max_8hr_o3.148.grib2
+wgrib2 -d 1 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm4}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "0-23 hour ave fcst" -grib out1.grb2
+wgrib2 -d 2 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm4}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "24-47 hour ave fcst" -grib out2.grb2
+wgrib2 -d 3 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm4}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "48-71 hour ave fcst" -grib out3.grb2
+cat out1.grb2 out2.grb2 out3.grb2 > /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm4}/aqm.t${hour}z.max_8hr_o3.148.grib2
+wgrib2 -d 1 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm5}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "0-23 hour ave fcst" -grib out1.grb2
+wgrib2 -d 2 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm5}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "24-47 hour ave fcst" -grib out2.grb2
+wgrib2 -d 3 /lfs/h1/ops/prod/com/aqm/v6.1/cs.${PDYm5}/aqm.t${hour}z.max_8hr_o3.148.grib2 -set_ftime "48-71 hour ave fcst" -grib out3.grb2
+cat out1.grb2 out2.grb2 out3.grb2 > /lfs/h2/emc/ptmp/perry.shafran/com/aqm/prod/aqm.${PDYm5}/aqm.t${hour}z.max_8hr_o3.148.grib2
+fi
+
+
+cat << EOF > fcst_input_temp_${model}.conf
+[filename_templates]
+FCST_POINT_STAT_INPUT_TEMPLATE = aqm.{init?fmt=%Y%m%d}/aqm.t${hour}z.max_8hr_o3.148.grib2
+EOF
+
+run_metplus.py -c ${MET_PLUS_CONF}/pb2nc_${model}.conf -c ${MET_PLUS_CONF}/point_stat_${model}.conf -c ${MET_PLUS_TMP}/shared.conf_aqmax -c ${MET_PLUS_CONF}/system_aq.conf -c ${MET_PLUS_TMP}/fcst_input_temp_${model}.conf
+
+done
+
+
+for model in pmmax
+do
+
+cat << EOF > fcst_input_temp_${model}.conf
+[filename_templates]
+FCST_POINT_STAT_INPUT_TEMPLATE = cs.{init?fmt=%Y%m%d}/aqm.t${hour}z.max_1hr_pm25.148.grib2
+EOF
+
+run_metplus.py -c  ${MET_PLUS_CONF}/pb2nc_${model}.conf -c ${MET_PLUS_CONF}/point_stat_${model}.conf -c ${MET_PLUS_TMP}/shared.conf_aqmax -c ${MET_PLUS_CONF}/system_aq.conf -c ${MET_PLUS_TMP}/fcst_input_temp_${model}.conf
+
+done
+
+for model in pmave
+do
+
+cat << EOF > fcst_input_temp_${model}.conf
+[filename_templates]
+FCST_POINT_STAT_INPUT_TEMPLATE = cs.{init?fmt=%Y%m%d}/aqm.t${hour}z.ave_24hr_pm25.148.grib2
+EOF
+
+run_metplus.py -c ${MET_PLUS_CONF}/pb2nc_${model}.conf -c ${MET_PLUS_CONF}/point_stat_${model}.conf -c ${MET_PLUS_TMP}/shared.conf_aqmax -c ${MET_PLUS_CONF}/system_aq.conf -c ${MET_PLUS_TMP}/fcst_input_temp_${model}.conf
+
+done
+
+done
+
+mv ${MET_PLUS_OUT}/logs/master_metplus.log.${DATEP1} ${MET_PLUS_TMP}
+
+exit
